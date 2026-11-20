@@ -24,6 +24,17 @@ export const empty = (): Data => ({
   sessions: [],
   selectedPlayerId: null,
 });
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, canonical(item)]),
+    );
+  }
+  return value;
+}
 const uuid = (s: unknown) =>
   typeof s === "string" &&
   /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(s);
@@ -272,7 +283,10 @@ export class Store {
       );
       for (const item of value[field] as unknown as Record<string, unknown>[]) {
         const old = existing.get(item[key]);
-        if (old && JSON.stringify(old) !== JSON.stringify(item))
+        if (
+          old &&
+          JSON.stringify(canonical(old)) !== JSON.stringify(canonical(item))
+        )
           throw new Error("備份含相同 ID 的不同資料，已停止匯入。");
         if (!old) (data[field] as unknown[]).push(item);
       }

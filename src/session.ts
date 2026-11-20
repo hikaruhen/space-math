@@ -53,10 +53,10 @@ export class Session {
     this.status = "playing";
     this.next();
   }
-  private next() {
+  private next(appearedAt = this.elapsed) {
     this.records.push({
       question: this.deck.next(),
-      appearedAt: this.elapsed,
+      appearedAt,
       attempts: [],
       completed: false,
     });
@@ -120,7 +120,7 @@ export class Session {
       if (this.streak % 5 === 0) this.score += 50;
     } else this.streak = 0;
     this.maxStreak = Math.max(this.maxStreak, this.streak);
-    this.next();
+    this.next(time);
     return "correct";
   }
   finish() {

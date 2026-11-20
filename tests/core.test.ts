@@ -130,6 +130,23 @@ function fixture() {
   };
 }
 describe("60-second session and scoring", () => {
+  it("charges question-generation overhead to active play instead of dropping it", () => {
+    let clock = 0;
+    const s = new Session(
+      crypto.randomUUID(),
+      "A1",
+      "keypad",
+      () => clock,
+      () => {
+        clock++;
+        return 0.37;
+      },
+    );
+    s.start();
+    clock = 1000;
+    s.submit(s.current.question.answer, s.current.question.id);
+    expect(s.current.appearedAt).toBe(1000);
+  });
   it("counts retries once, preserves options, rejects stale submission", () => {
     const { s, set, correct } = fixture();
     const q = s.current.question,
@@ -325,5 +342,15 @@ describe("persistence and backup", () => {
       { ...empty(), players: [{ playerId: '\" onclick=alert(1)' }] },
     ])
       expect(validData(data)).toBe(false);
+  });
+  it("ignores JSON object-key order when merging duplicate records", () => {
+    const store = new Store(memory());
+    store.addPlayer("測試", 0);
+    const copy = structuredClone(store.data);
+    copy.players[0] = Object.fromEntries(
+      Object.entries(copy.players[0]).reverse(),
+    ) as unknown as (typeof copy.players)[number];
+    store.merge(copy);
+    expect(store.data.players).toHaveLength(1);
   });
 });
