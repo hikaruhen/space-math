@@ -10,7 +10,7 @@
 | P1 | 完成瀏覽器驗收 | 平板雙欄、手機直排、暫停遮題、背景暫停、火箭與音效開關 |
 | P2 | 完成 | 多玩家與偏好、分關分模式歷史、最佳紀錄、全開放地圖、A1 試行星級 |
 | P3 | 首版完成 | 原創 SVG 火箭、CSS 星球、連擊回饋、減少動態效果；不依賴外部字型或圖片服務 |
-| P4 | 本機驗收完成，正式部署核對中 | 子目錄建置、Service Worker 離線、JSON 備份與還原、GitHub Actions 工作流程 |
+| P4 | 已發布並完成瀏覽器驗收 | Pages 正式站、子目錄建置、Service Worker 離線、JSON 備份與還原、GitHub Actions 工作流程 |
 
 ## 自動化證據
 
@@ -42,6 +42,15 @@
 
 ## 發布與剩餘限制
 
-使用者已確認將 `hikaruhen/space-math` 改公開並免費發布 Pages；儲存庫已公開，Pages 來源已設為 GitHub Actions。正式部署與雲端 CI 結果待本次發布完成後補記。
+使用者已確認將 `hikaruhen/space-math` 改公開並免費發布 Pages；儲存庫已公開，Pages 來源已設為 GitHub Actions。
+
+- 正式網址：[太空數學探險](https://hikaruhen.github.io/space-math/)。
+- 遊戲程式 commit：`f3c6a60ad387dffad730d82ec06d4009f98e1cb8`；版本 `1.0.0`，build `01ae7a9cc2e0`。
+- [雲端測試與建置](https://github.com/hikaruhen/space-math/actions/runs/44663794224)及 [Pages 部署](https://github.com/hikaruhen/space-math/actions/runs/44663794243)皆成功。
+- 正式站 `index.html`、JavaScript、CSS、`sw.js` 的 SHA-256 與本機最終建置逐一吻合。
+- 正式站完成 B4 鍵盤完整 60 秒：完成 4 題、首次答對 3 題、錯誤 1 次、460 分、75% 首次正確率。實際題目包含 `7 + 9`（先答 15，重試 16）、`15 − 7`、`? + 6 = 12`、`? − 7 = 8`。
+- 正式站模擬斷網並重新載入成功，保留角色與 B4 最多完成 4 題紀錄；驗收後已恢復網路及原始顯示尺寸。
+- 本機免安裝 npm 依賴的建置備份：`release/space-math-v1-local.zip`，內含 `dist/`、本機伺服器與 Windows 啟動器；仍需 Node.js。
+- 文件更新不觸發重建；後續程式更新推送 main 會自動測試、建置及部署。
 
 實體裝置觸控、瀏覽器禁播音效的真機行為、PWA 安裝到主畫面與兒童試玩尚未驗收。A1 星級為試行值，其他關卡待校準。紀錄僅存在各網址的本機瀏覽器，跨裝置／跨網址需匯出再匯入。
