@@ -2,7 +2,9 @@
 
 ## 目前專案狀態
 
-遊戲 v1 已實作，包含八關、兩種答題模式、多玩家紀錄、備份與離線支援。正式發布狀態與驗收限制見 [驗收紀錄](docs/VERIFICATION.md)。
+本機 v2 已完成：預設不限時 10 題探險，保留 60 秒挑戰，新增漸進提示、錯題再練及獨立作答紀錄。保留八關、雙答題模式、多玩家、備份與離線功能。
+
+本輪完成度與試玩證據見 [v2 試玩紀錄](docs/PLAYTEST_V2.md)。本機變更尚未推送或部署；下列線上網址仍是先前發布版本。2026-11-23 的 [v2 產品規格](docs/PRODUCT_SPEC.md) 取代下方歷史規格。
 
 ### 本機執行
 
@@ -15,7 +17,7 @@ npm ci --legacy-peer-deps
 npm run dev
 ```
 
-開啟終端顯示的本機網址。`npm test` 驗證數學與回合，`npm run build` 產生 `dist/`。`npm run preview` 可檢查正式建置及離線功能；開發模式不註冊 Service Worker。
+開啟終端顯示的本機網址。`npm test` 驗證數學與回合；啟動本機 dev（5174）後可用 `node scripts/verify-game.mjs` 跑瀏覽器角色試玩。`GAME_URL` 可指定其他測試網址。`npm run build` 產生 `dist/`。`npm run preview` 可檢查正式建置及離線功能；開發模式不註冊 Service Worker。
 
 GitHub Actions 每次推送會測試、建置、保存靜態網站產物並發布 Pages，也可手動觸發部署。使用者已於 2026-11-20 確認公開儲存庫並免費發布。遊戲無後端，玩家與成績留在使用者自己的瀏覽器。
 

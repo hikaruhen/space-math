@@ -1,4 +1,6 @@
 import { Deck, type LevelId, type Mode, type Question } from "./engine";
+export type Gameplay = "mission" | "challenge" | "review";
+export const gameplayLabel = (g: Gameplay = "challenge") => ({ mission: "10 題探險", challenge: "60 秒挑戰", review: "錯題再練" })[g];
 export interface Attempt {
   value: number;
   atActiveMs: number;
@@ -9,6 +11,7 @@ export interface RecordQuestion {
   appearedAt: number;
   attempts: Attempt[];
   completed: boolean;
+  hintUsed?: boolean;
   completedAt?: number;
 }
 export type Status = "ready" | "playing" | "paused" | "results" | "aborted";
@@ -32,14 +35,26 @@ export class Session {
     public answerMode: Mode,
     private now = () => performance.now(),
     rng = Math.random,
+    public gameplay: Gameplay = "challenge",
+    private reviewQuestions: Question[] = [],
   ) {
     this.deck = new Deck(levelId, rng);
+    this.reviewQuestions = reviewQuestions.slice(0, 5).map(q => structuredClone(q));
+    if (gameplay === "review" && !this.reviewQuestions.length) throw Error("沒有待練習題目");
   }
   get elapsed() {
     return Math.min(
-      60000,
+      this.gameplay === "challenge" ? 60000 : Infinity,
       this.active + (this.status === "playing" ? this.now() - this.since : 0),
     );
+  }
+  get target() { return this.gameplay === "mission" ? 10 : this.gameplay === "review" ? this.reviewQuestions.length : Infinity; }
+  useHint() {
+    this.tick();
+    if (this.status !== "playing") return false;
+    this.current.hintUsed = true;
+    this.streak = 0;
+    return true;
   }
   get remaining() {
     return Math.max(0, 60000 - this.elapsed);
@@ -55,14 +70,15 @@ export class Session {
   }
   private next(appearedAt = this.elapsed) {
     this.records.push({
-      question: this.deck.next(),
+      question: this.gameplay === "review" ? this.reviewQuestions[this.completedCount] : this.deck.next(),
+      hintUsed: false,
       appearedAt,
       attempts: [],
       completed: false,
     });
   }
   tick() {
-    if (this.status === "playing" && this.elapsed >= 60000) this.finish();
+    if (this.status === "playing" && this.gameplay === "challenge" && this.elapsed >= 60000) this.finish();
   }
   pause() {
     if (this.status !== "playing") return;
@@ -97,7 +113,7 @@ export class Session {
       return "ignored";
     const r = this.current,
       time = this.elapsed;
-    if (time >= 60000) {
+    if (this.gameplay === "challenge" && time >= 60000) {
       this.finish();
       return "ignored";
     }
@@ -107,31 +123,38 @@ export class Session {
     if (!correct) {
       this.wrongSubmissionCount++;
       this.streak = 0;
+      if (r.attempts.length >= 2) this.useHint();
       return "wrong";
     }
     r.completed = true;
     r.completedAt = time;
     this.completedCount++;
     this.score += 100;
-    if (first) {
+    if (first && !r.hintUsed) {
       this.firstTryCorrectCount++;
       this.streak++;
       this.score += 20;
       if (this.streak % 5 === 0) this.score += 50;
     } else this.streak = 0;
     this.maxStreak = Math.max(this.maxStreak, this.streak);
-    this.next(time);
+    if (this.completedCount >= this.target) this.finish();
+    else this.next(time);
     return "correct";
   }
   finish() {
     if (this.status !== "playing") return;
-    this.active = 60000;
+    this.active = this.gameplay === "challenge" ? 60000 : this.elapsed;
     this.status = "results";
   }
   summary() {
     const done = this.records.filter((r) => r.completed);
     return {
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as 1 | 2,
+      gameplay: this.gameplay,
+      targetCount: Number.isFinite(this.target) ? this.target : null,
+      hintCount: this.records.filter(r => r.hintUsed).length,
+      attemptedCount: this.records.filter(r => r.attempts.length).length,
+      independentAccuracy: this.records.some(r => r.attempts.length) ? this.firstTryCorrectCount / this.records.filter(r => r.attempts.length).length : null,
       sessionId: this.id,
       playerId: this.playerId,
       levelId: this.levelId,
@@ -155,7 +178,8 @@ export class Session {
     };
   }
 }
-export type Result = ReturnType<Session["summary"]>;
+type Summary = ReturnType<Session["summary"]>;
+export type Result = Omit<Summary, "gameplay" | "targetCount" | "hintCount" | "attemptedCount" | "independentAccuracy"> & Partial<Pick<Summary, "gameplay" | "targetCount" | "hintCount" | "attemptedCount" | "independentAccuracy">>;
 export const starThresholds = {
   A1: [
     { count: 5, accuracy: 0.7 },

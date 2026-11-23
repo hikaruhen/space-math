@@ -12,14 +12,14 @@ export interface Player {
   preferences: Preferences;
 }
 export interface Data {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   players: Player[];
   sessions: Result[];
   selectedPlayerId: string | null;
 }
 export const STORE_KEY = "space-math-v1";
 export const empty = (): Data => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   players: [],
   sessions: [],
   selectedPlayerId: null,
@@ -48,7 +48,7 @@ export function validData(value: unknown): value is Data {
     if (!value || typeof value !== "object") return false;
     const d = value as Data;
     if (
-      d.schemaVersion !== 1 ||
+      ![1, 2].includes(d.schemaVersion) ||
       !Array.isArray(d.players) ||
       !Array.isArray(d.sessions) ||
       !(d.selectedPlayerId === null || typeof d.selectedPlayerId === "string")
@@ -81,12 +81,12 @@ export function validData(value: unknown): value is Data {
       d.sessions.every((s) => {
         if (
           !s ||
-          s.schemaVersion !== 1 ||
+          ![1, 2].includes(s.schemaVersion) ||
           !uuid(s.sessionId) ||
           !ids.has(s.playerId) ||
           !/^([AB][1-4])$/.test(s.levelId) ||
           !["keypad", "choices"].includes(s.answerMode) ||
-          s.activeDurationMs !== 60000 ||
+          (!Number.isFinite(s.activeDurationMs) || s.activeDurationMs < 0 || ((s.gameplay ?? "challenge") === "challenge" && s.activeDurationMs !== 60000)) ||
           !Array.isArray(s.questions) ||
           !s.questions.length ||
           !date(s.startedAt) ||
@@ -114,7 +114,7 @@ export function validData(value: unknown): value is Data {
             s.avgCompletionTime === null ||
             (Number.isFinite(s.avgCompletionTime) &&
               s.avgCompletionTime >= 0 &&
-              s.avgCompletionTime <= 60000)
+              s.avgCompletionTime <= s.activeDurationMs)
           )
         )
           return false;
@@ -134,7 +134,7 @@ export function validData(value: unknown): value is Data {
             typeof r.completed !== "boolean" ||
             !Number.isFinite(r.appearedAt) ||
             r.appearedAt < previous ||
-            r.appearedAt >= 60000 ||
+            r.appearedAt > s.activeDurationMs ||
             (!r.completed && index !== s.questions.length - 1)
           )
             return false;
@@ -157,6 +157,8 @@ export function validData(value: unknown): value is Data {
             )
           )
             return false;
+          if (s.schemaVersion === 2 && typeof r.hintUsed !== "boolean") return false;
+          if (r.hintUsed) streak = 0;
           let at = r.appearedAt;
           for (let i = 0; i < r.attempts.length; i++) {
             const a = r.attempts[i];
@@ -166,7 +168,7 @@ export function validData(value: unknown): value is Data {
               a.value > 20 ||
               !Number.isFinite(a.atActiveMs) ||
               a.atActiveMs < at ||
-              a.atActiveMs >= 60000 ||
+              (a.atActiveMs > s.activeDurationMs || ((s.gameplay ?? "challenge") === "challenge" && a.atActiveMs >= 60000)) ||
               a.isCorrect !== (a.value === q.answer) ||
               (a.isCorrect && i !== r.attempts.length - 1)
             )
@@ -183,7 +185,7 @@ export function validData(value: unknown): value is Data {
             completed++;
             score += 100;
             total += at - r.appearedAt;
-            if (r.attempts.length === 1) {
+            if (r.attempts.length === 1 && !r.hintUsed) {
               first++;
               streak++;
               score += 20;
@@ -200,6 +202,17 @@ export function validData(value: unknown): value is Data {
         });
         return (
           valid &&
+          (s.schemaVersion === 1 || (
+            ["mission", "challenge", "review"].includes(s.gameplay!) &&
+            s.hintCount === s.questions.filter(r => r.hintUsed).length &&
+            s.attemptedCount === s.questions.filter(r => r.attempts.length).length &&
+            s.independentAccuracy === (s.attemptedCount ? first / s.attemptedCount : null) &&
+            (s.gameplay === "challenge" ? s.targetCount === null :
+              Number.isInteger(s.targetCount) && s.targetCount! >= 1 &&
+              s.targetCount! <= (s.gameplay === "mission" ? 10 : 5) &&
+              (s.gameplay !== "mission" || s.targetCount === 10) &&
+              completed === s.targetCount && s.questions.length === completed)
+          )) &&
           s.completedCount === completed &&
           s.firstTryCorrectCount === first &&
           s.wrongSubmissionCount === wrong &&
@@ -223,7 +236,7 @@ export class Store {
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (!validData(parsed)) throw new Error("invalid");
-        this.data = parsed;
+        this.data = { ...parsed, schemaVersion: 2 };
       }
     } catch {
       this.protected = true;

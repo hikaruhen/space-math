@@ -14,6 +14,6 @@ const hash = createHash("sha256")
 await writeFile(path, worker.replace("space-math-v1", `space-math-${hash}`));
 await writeFile(
   new URL("../dist/version.json", import.meta.url),
-  JSON.stringify({ version: "1.0.0", build: hash }),
+  JSON.stringify({ version: "2.0.0", build: hash }),
 );
 console.log(`Build ${hash}`);
