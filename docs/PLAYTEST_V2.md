@@ -1,6 +1,6 @@
 # v2 角色試玩與改善驗收
 
-日期：2026-11-23。版本 2.0.0。本輪修改本機版本，未推送或部署正式站。
+日期：2026-11-23。版本 2.0.0。本輪先完成本機驗收，使用者進一步授權後已發布正式站。
 
 ## 完成與剩餘
 
@@ -45,3 +45,19 @@
 - 參考畫面：`tablet-hint.png`、`results.png`、`layout-1024.png`、`layout-390.png`、`answer-390.png`、`layout-320.png`、`offline-production.png`。
 
 瀏覽器自動化早期遇到文字擷取空白、重複首頁選擇器與備份摘要標點的測試斷言錯誤，已修正測試定位與預期文字；沒有為通過而放寬遊戲驗收條件。
+
+## 正式發布與驗收
+
+使用者於同日明確指示「發布」，已推送 `main` 並完成 GitHub Pages 自動部署。
+
+- 正式網址：https://hikaruhen.github.io/space-math/
+- 程式 commit：`b142f594ea4b9a6838d0c379828524b399a5ab2b`。
+- 雲端測試／建置成功：https://github.com/hikaruhen/space-math/actions/runs/45125856875
+- Pages 部署成功：https://github.com/hikaruhen/space-math/actions/runs/45125856865
+- 正式 `index.html`、JavaScript、CSS、Service Worker、manifest、圖示與版本檔逐一與本機建置比對一致；版本 `2.0.0`、build `ccb188212eee`。比對結果含 SHA-256 留存於 `test-results/release-report.json`。
+- 正式站 B4 數字鍵盤完成十題任務：首題故意答錯兩次，原題不變並自動顯示提示；完成 10 題、獨立首次 9 題、提示 1 題、90%。接著完成該題錯題再練。
+- 同一 context 模擬斷網後重新載入，角色與前兩趟紀錄保留；A2 四選一離線完成另十題，正常結算並累積三趟紀錄。驗收結束恢復網路。
+- 正式站驗收使用 Chrome 無頭瀏覽器與加速時鐘；不等同真實兒童或實體觸控驗收。本機正式建置另已完成真實 60 秒回合。
+- 舊頁籤可能仍由舊 Service Worker 控制；若看到舊版，關閉本遊戲所有頁籤再重新開啟，原網址的本機紀錄仍可沿用。
+
+本節文件更新不重建遊戲，正式執行版本仍對應上述程式 commit。
